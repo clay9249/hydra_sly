@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Potions Class</title>
+  
+  <!-- PWA & 應用程式設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a140f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Potions Class">
+  
+  <!-- 應用程式圖標 (Favicon & Apple Touch Icon) -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Gothic/Magic style -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome for Magic Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slytherin: {
+              dark: '#0a140f',      /* 極深綠黑 */
+              green: '#1a472a',     /* 史萊哲林經典綠 */
+              lightgreen: '#2a6644',/* 較亮魔藥綠 */
+              silver: '#aaaaaa',    /* 經典銀色 */
+              goldsilver: '#d1d5db',/* 白銀色 */
+              gold: '#c5a059',      /* 裝飾暗金 */
+            }
+          },
+          fontFamily: {
+            magic: ['Cinzel', 'Noto Sans TC', 'serif'],
+            sans: ['Noto Sans TC', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: radial-gradient(circle at center, #142a1e 0%, #060c09 100%);
+      min-height: 100vh;
+      color: #e5e7eb;
+    }
+    
+    .magic-title {
+      font-family: 'Cinzel', 'Noto Sans TC', serif;
+      text-shadow: 0 0 10px rgba(42, 102, 68, 0.8), 0 0 20px rgba(170, 170, 170, 0.3);
+    }
+
+    .silver-border {
+      border: 1px solid rgba(170, 170, 170, 0.3);
+      box-shadow: inset 0 0 15px rgba(26, 71, 42, 0.5), 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .potion-glow {
+      box-shadow: 0 0 20px rgba(42, 102, 68, 0.6);
+    }
+
+    /* 捲軸美化 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a140f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1a472a;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2a6644;
+    }
+
+    /* 魔法除去輸入框預設的上下微調按鈕 (Spin Buttons) */
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    /* Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    /* 魔藥泡泡動畫 */
+    @keyframes float-up {
+      0% {
+        transform: translateY(100%) scale(0.8);
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.6;
+      }
+      100% {
+        transform: translateY(-20vh) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: 0;
+      background: rgba(42, 102, 68, 0.3);
+      border: 1px solid rgba(170, 170, 170, 0.4);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float-up 4s infinite ease-in;
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 flex flex-col items-center justify-between relative overflow-x-hidden">
+
+  <!-- 魔法背景泡泡 -->
+  <div id="bubbles-container" class="absolute inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+  <!-- 主容器 -->
+  <main class="w-full max-w-2xl bg-slytherin-dark/90 rounded-2xl p-6 md:p-8 silver-border z-10 transition-all duration-300 relative">
+    
+    <!-- 頂部裝飾 -->
+    <div class="flex justify-between items-center border-b border-slytherin-silver/20 pb-4 mb-6">
+      <div class="flex items-center space-x-3">
+        <!-- 史萊哲林蛇徽與魔藥大釜意象 (SVG) -->
+        <svg class="w-10 h-10 text-slytherin-silver fill-current filter drop-shadow-[0_0_8px_rgba(42,102,68,0.8)]" viewBox="0 0 512 512">
+          <path d="M464 96H48c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h16v192c0 44.2 35.8 80 80 80h240c44.2 0 80-35.8 80-80V160h16c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16zm-80 256c0 17.6-14.4 32-32 32H160c-17.6 0-32-14.4-32-32V160h256v192zM232 200c0-4.4-3.6-8-8-8s-8 3.6-8 8v112c0 4.4 3.6 8 8 8s8-3.6 8-8V200zm64 0c0-4.4-3.6-8-8-8s-8 3.6-8 8v112c0 4.4 3.6 8 8 8s8-3.6 8-8V200zm64 0c0-4.4-3.6-8-8-8s-8 3.6-8 8v112c0 4.4 3.6 8 8 8s8-3.6 8-8V200z"/>
+        </svg>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold tracking-wider magic-title text-slytherin-silver">魔藥學</h1>
+          <p class="text-xs text-slytherin-silver/60 uppercase tracking-widest font-magic">Slytherin House Potions Class</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="px-3 py-1 bg-slytherin-green/40 border border-slytherin-silver/30 text-slytherin-silver text-xs rounded-full uppercase font-magic tracking-wider">
+          精明 & 追求完美
+        </span>
+      </div>
+    </div>
+
+    <!-- 學院箴言 -->
+    <div class="mb-6 text-center italic text-slytherin-silver/80 text-sm bg-slytherin-green/10 py-2 px-4 rounded border-l-4 border-slytherin-lightgreen">
+      「不是每一滴流進嘴裡的液體，都能轉化為純淨的魔力源泉。」 —— 魔藥學教授
+    </div>
+
+    <!-- 核心計算區塊 -->
+    <section class="space-y-6">
+      
+      <!-- 1. 飲料種類選擇 -->
+      <div>
+        <label class="block text-slytherin-silver font-semibold mb-2 flex items-center space-x-2">
+          <i class="fa-solid fa-flask text-slytherin-lightgreen"></i>
+          <span>選擇魔藥：</span>
+        </label>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="beverage-selector">
+          <!-- JS 動態渲染按鈕 -->
+        </div>
+      </div>
+
+      <!-- 2. 自定義佔比與自訂名稱顯示 (僅在選中自定義時顯示) -->
+      <div id="custom-ratio-container" class="hidden bg-slytherin-dark/60 p-4 rounded-lg border border-slytherin-lightgreen/30 transition-all duration-300 space-y-4">
+        <!-- 自訂名稱輸入欄位 -->
+        <div>
+          <label for="custom-drink-name" class="block text-sm text-slytherin-silver mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-pen-nib text-slytherin-gold"></i>
+            <span>自定義魔藥名稱：</span>
+          </label>
+          <input type="text" id="custom-drink-name" placeholder="例如：福靈劑、復方湯劑、生骨藥" 
+                 class="w-full bg-slytherin-dark/80 border border-slytherin-silver/30 focus:border-slytherin-lightgreen text-white px-3 py-2 rounded focus:outline-none focus:ring-1 focus:ring-slytherin-lightgreen text-sm transition-all placeholder:text-slytherin-silver/30">
+        </div>
+
+        <!-- 自訂佔比滑桿 -->
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slytherin-silver flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-slytherin-gold"></i>
+              <span>自定義此魔藥的魔力值佔比：</span>
+            </span>
+            <span class="text-slytherin-gold font-bold" id="custom-ratio-display">70%</span>
+          </div>
+          <input type="range" id="custom-ratio-slider" min="0" max="100" value="70" class="w-full accent-slytherin-lightgreen cursor-pointer bg-slytherin-dark">
+          <div class="flex justify-between text-xs text-slytherin-silver/50 mt-1">
+            <span>0% (全非水)</span>
+            <span>50%</span>
+            <span>100% (純水)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 目前選中飲料的水分資訊 -->
+      <div class="bg-slytherin-green/20 p-4 rounded-lg border border-slytherin-silver/10 flex justify-between items-center">
+        <div>
+          <span class="text-xs text-slytherin-silver/60 uppercase block">當前分析配方</span>
+          <span class="text-lg font-bold text-slytherin-silver" id="selected-drink-name">水</span>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slytherin-silver/60 uppercase block">魔力轉換效率</span>
+          <span class="text-xl font-bold text-slytherin-lightgreen" id="water-percentage-badge">100%</span>
+        </div>
+      </div>
+
+      <!-- 4. 輸入飲用量 -->
+      <div>
+        <label for="drink-volume" class="block text-slytherin-silver font-semibold mb-2 flex items-center space-x-2">
+          <i class="fa-solid fa-vial text-slytherin-lightgreen"></i>
+          <span>注入大釜的容量 (ml)：</span>
+        </label>
+        <div class="relative">
+          <input type="number" id="drink-volume" min="1" placeholder="請輸入容量，例如: 500" 
+                 class="w-full bg-slytherin-dark border border-slytherin-silver/30 focus:border-slytherin-lightgreen text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-slytherin-lightgreen text-lg transition-all">
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slytherin-silver/50 font-bold">ml</span>
+        </div>
+      </div>
+
+      <!-- 5. 即時計算結果 -->
+      <div class="bg-gradient-to-r from-slytherin-green/40 to-slytherin-dark border-l-4 border-slytherin-lightgreen p-4 rounded-r-lg flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+        <div>
+          <h3 class="text-sm text-slytherin-silver/80">經魔法萃取，你實際吸收的「純淨魔力」：</h3>
+          <p class="text-xs text-slytherin-silver/50">（容量 × 水分佔比 = 真正吸收的魔力）</p>
+        </div>
+        <div class="text-center sm:text-right">
+          <span class="text-3xl font-extrabold text-slytherin-lightgreen tracking-wider" id="calc-result">0</span>
+          <span class="text-slytherin-silver ml-1 font-bold">ml</span>
+        </div>
+      </div>
+
+      <!-- 6. 動作按鈕 -->
+      <div class="grid grid-cols-2 gap-4">
+        <button id="add-record-btn" class="w-full bg-gradient-to-r from-slytherin-green to-slytherin-lightgreen hover:from-slytherin-lightgreen hover:to-slytherin-green text-white py-3 px-4 rounded-lg font-bold shadow-lg transition duration-200 flex items-center justify-center space-x-2 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+          <i class="fa-solid fa-plus"></i>
+          <span>倒入大釜紀錄</span>
+        </button>
+        <button id="clear-today-btn" class="w-full bg-transparent border border-red-900/40 hover:bg-red-950/20 text-red-400 py-3 px-4 rounded-lg font-semibold transition duration-200 flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>淨空魔藥歷史</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- 每日進度面板 (魔藥熟練度) -->
+    <section class="mt-8 border-t border-slytherin-silver/20 pt-6">
+      <div class="flex justify-between items-end mb-2">
+        <div>
+          <h2 class="text-lg font-bold text-slytherin-silver font-magic flex items-center gap-2">
+            <i class="fa-solid fa-circle-nodes text-slytherin-lightgreen"></i>
+            今日攝取魔力值
+          </h2>
+          <p class="text-xs text-slytherin-silver/60">目標：1610 ml</p>
+        </div>
+        <div class="text-right">
+          <span class="text-2xl font-black text-slytherin-silver" id="total-water">0</span>
+          <span class="text-xs text-slytherin-silver/70"> / 1610ml</span>
+        </div>
+      </div>
+
+      <!-- 自訂進度條 -->
+      <div class="w-full bg-slytherin-dark rounded-full h-4 p-0.5 border border-slytherin-silver/20 overflow-hidden">
+        <div id="progress-bar" class="bg-gradient-to-r from-slytherin-green to-slytherin-lightgreen h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(42,102,68,0.8)]" style="width: 0%"></div>
+      </div>
+      <div class="flex justify-between text-xs text-slytherin-silver/50 mt-1">
+        <span>乾涸枯竭</span>
+        <span id="progress-percentage">進度: 0%</span>
+        <span>魔力充沛</span>
+      </div>
+    </section>
+
+    <!-- 歷史紀錄 (魔藥調配日誌) -->
+    <section class="mt-8 border-t border-slytherin-silver/20 pt-6">
+      <h2 class="text-md font-bold text-slytherin-silver font-magic mb-3 flex items-center gap-2">
+        <i class="fa-solid fa-book-skull text-slytherin-lightgreen"></i>
+        大釜日誌 (今日飲用紀錄)
+      </h2>
+      
+      <div class="max-h-48 overflow-y-auto space-y-2 pr-1" id="record-list">
+        <!-- 紀錄空空如也時 -->
+        <p id="empty-state" class="text-center py-6 text-sm text-slytherin-silver/40 italic">
+          大釜中尚無魔藥紀錄，請開始調配...
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="w-full text-center mt-6 text-xs text-slytherin-silver/40 font-magic z-10">
+    <p>© 1997 - 2026 Slytherin House. Ambition, Pride, Cunning.</p>
+    <p class="mt-1">精心淬煉純淨之水 ‧ 追求力量極致</p>
+  </footer>
+
+  <!-- 彈出通知組件 -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slytherin-green border border-slytherin-silver/40 text-slytherin-silver px-6 py-3 rounded-xl shadow-2xl z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <i class="fa-solid fa-wand-magic-sparkles text-slytherin-gold"></i>
+    <span id="toast-message">魔藥調配完成！</span>
+  </div>
+
+  <script>
+    /* =========================================================
+     * 1. 飲料數據定義 (直接在此處維護水分轉換率)
+     * ========================================================= */
+    const BEVERAGE_TYPES = [
+      { id: 'water',     name: '水',   ratio: 1.00, icon: 'fa-glass-water',  desc: '完美純淨的水分' },
+      { id: 'tea',       name: '純茶',     ratio: 0.90, icon: 'fa-leaf',         desc: '輕微利尿，保留90%水分' },
+      { id: 'coffee',    name: '黑咖啡',   ratio: 0.85, icon: 'fa-mug-hot',      desc: '咖啡因代謝，保留85%水分' },
+      { id: 'milktea',   name: '奶茶/拿鐵', ratio: 0.80, icon: 'fa-whiskey-glass', desc: '乳脂與糖需消化，保留80%水分' },
+      { id: 'soda',      name: '汽水/甜飲', ratio: 0.75, icon: 'fa-bottle-droplet', desc: '高糖分影響吸收，保留75%水分' },
+      { id: 'custom',    name: '自定義魔藥',ratio: 0.70, icon: 'fa-wand-sparkles',  desc: '自訂黃金水分比率' }
+    ];
+
+    // 每日水分攝取目標 (ml)
+    const DAILY_WATER_TARGET = 2000;
+
+    // 當前狀態
+    let selectedBeverage = BEVERAGE_TYPES[0];
+    let customRatio = 0.70; // 自定義的預設魔力值佔比
+    let records = [];
+
+    // 獲取 DOM 節點
+    const beverageSelector = document.getElementById('beverage-selector');
+    const selectedDrinkName = document.getElementById('selected-drink-name');
+    const waterPercentageBadge = document.getElementById('water-percentage-badge');
+    const customRatioContainer = document.getElementById('custom-ratio-container');
+    const customRatioSlider = document.getElementById('custom-ratio-slider');
+    const customRatioDisplay = document.getElementById('custom-ratio-display');
+    const customDrinkNameInput = document.getElementById('custom-drink-name');
+    const drinkVolumeInput = document.getElementById('drink-volume');
+    const calcResult = document.getElementById('calc-result');
+    const addRecordBtn = document.getElementById('add-record-btn');
+    const clearTodayBtn = document.getElementById('clear-today-btn');
+    const totalWaterDisplay = document.getElementById('total-water');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercentage = document.getElementById('progress-percentage');
+    const recordList = document.getElementById('record-list');
+    const emptyState = document.getElementById('empty-state');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    /* =========================================================
+     * 2. 初始化與動態渲染
+     * ========================================================= */
+    window.onload = function() {
+      initApp();
+      createMagicBubbles();
+      
+      // 註冊 Service Worker 實現真正的 PWA
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+          // 在本機或開發環境中，若無 sw.js 亦不會報錯影響網頁使用
+        });
+      }
+    };
+
+    function initApp() {
+      // 1. 渲染飲料按鈕
+      beverageSelector.innerHTML = '';
+      BEVERAGE_TYPES.forEach(bev => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = `btn-${bev.id}`;
+        btn.className = `p-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all duration-300 text-center ${
+          bev.id === selectedBeverage.id 
+            ? 'bg-slytherin-green/40 border-slytherin-lightgreen shadow-[0_0_10px_rgba(42,102,68,0.5)] text-white' 
+            : 'bg-slytherin-dark/40 border-slytherin-silver/20 text-slytherin-silver hover:border-slytherin-silver/50 hover:bg-slytherin-green/10'
+        }`;
+        
+        btn.innerHTML = `
+          <i class="fa-solid ${bev.icon} text-lg mb-1"></i>
+          <span class="text-sm font-semibold">${bev.name}</span>
+          <span class="text-xs text-slytherin-silver/40">${bev.id === 'custom' ? '自訂 %' : Math.round(bev.ratio * 100) + '%'}</span>
+        `;
+        
+        btn.addEventListener('click', () => selectBeverage(bev.id));
+        beverageSelector.appendChild(btn);
+      });
+
+      // 2. 載入本地儲存數據 (如果有的話)
+      loadLocalStorage();
+
+      // 3. 綁定監聽器
+      drinkVolumeInput.addEventListener('input', calculateWater);
+      customRatioSlider.addEventListener('input', handleCustomRatioChange);
+      customDrinkNameInput.addEventListener('input', updateDisplay); // 當輸入自定義名稱時即時更新上方看板
+      addRecordBtn.addEventListener('click', addNewRecord);
+      clearTodayBtn.addEventListener('click', clearRecords);
+
+      // 4. 更新畫面
+      updateDisplay();
+    }
+
+    /* =========================================================
+     * 3. 核心邏輯處理
+     * ========================================================= */
+    
+    // 切換飲料種類
+    function selectBeverage(id) {
+      const prevId = selectedBeverage.id;
+      selectedBeverage = BEVERAGE_TYPES.find(b => b.id === id);
+
+      // UI 切換效果
+      document.getElementById(`btn-${prevId}`)?.classList.remove('bg-slytherin-green/40', 'border-slytherin-lightgreen', 'text-white');
+      document.getElementById(`btn-${prevId}`)?.classList.add('bg-slytherin-dark/40', 'border-slytherin-silver/20', 'text-slytherin-silver');
+      
+      document.getElementById(`btn-${id}`)?.classList.add('bg-slytherin-green/40', 'border-slytherin-lightgreen', 'text-white');
+      document.getElementById(`btn-${id}`)?.classList.remove('bg-slytherin-dark/40', 'border-slytherin-silver/20', 'text-slytherin-silver');
+
+      // 顯示/隱藏自定義設定面板（含名稱輸入與比例滑桿）
+      if (id === 'custom') {
+        customRatioContainer.classList.remove('hidden');
+      } else {
+        customRatioContainer.classList.add('hidden');
+      }
+
+      updateDisplay();
+      calculateWater();
+    }
+
+    // 當自定義百分比調整時
+    function handleCustomRatioChange(e) {
+      const val = parseInt(e.target.value);
+      customRatio = val / 100;
+      customRatioDisplay.textContent = `${val}%`;
+      updateDisplay();
+      calculateWater();
+    }
+
+    // 取得當前真實的水分佔比
+    function getCurrentRatio() {
+      return selectedBeverage.id === 'custom' ? customRatio : selectedBeverage.ratio;
+    }
+
+    // 計算水分
+    function calculateWater() {
+      const volume = parseFloat(drinkVolumeInput.value) || 0;
+      const ratio = getCurrentRatio();
+      const waterResult = Math.round(volume * ratio);
+      calcResult.textContent = waterResult;
+    }
+
+    // 更新顯示文字
+    function updateDisplay() {
+      const ratio = getCurrentRatio();
+      
+      if (selectedBeverage.id === 'custom') {
+        const customName = customDrinkNameInput.value.trim();
+        selectedDrinkName.textContent = customName !== '' ? customName : '自定義魔藥';
+      } else {
+        selectedDrinkName.textContent = selectedBeverage.name;
+      }
+      
+      waterPercentageBadge.textContent = `${Math.round(ratio * 100)}%`;
+    }
+
+    // 新增紀錄到大釜
+    function addNewRecord() {
+      const volume = parseFloat(drinkVolumeInput.value);
+      if (!volume || volume <= 0) {
+        showToast('請注入有效的水量容量（ml）！');
+        return;
+      }
+
+      const ratio = getCurrentRatio();
+      const pureWater = Math.round(volume * ratio);
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // 取得本次紀錄要顯示的飲料名稱
+      let finalDrinkName = selectedBeverage.name;
+      if (selectedBeverage.id === 'custom') {
+        const customName = customDrinkNameInput.value.trim();
+        finalDrinkName = customName !== '' ? customName : '自定義魔藥';
+      }
+
+      const newRecord = {
+        id: Date.now(),
+        drinkName: finalDrinkName,
+        icon: selectedBeverage.icon,
+        volume: volume,
+        ratio: ratio,
+        pureWater: pureWater,
+        time: time
+      };
+
+      records.unshift(newRecord); // 最新紀錄排在最前
+      saveToLocalStorage();
+      renderRecords();
+      updateProgress();
+
+      // 清空輸入欄
+      drinkVolumeInput.value = '';
+      calcResult.textContent = '0';
+
+      showToast(`成功調配！獲得 ${pureWater} ml 純淨魔力！`);
+    }
+
+    // 刪除單筆紀錄
+    function deleteRecord(id) {
+      records = records.filter(rec => rec.id !== id);
+      saveToLocalStorage();
+      renderRecords();
+      updateProgress();
+      showToast('已移除該調配紀錄');
+    }
+
+    // 清空今天所有紀錄
+    function clearRecords() {
+      if (records.length === 0) {
+        showToast('大釜本來就是淨空的。');
+        return;
+      }
+      
+      records = [];
+      saveToLocalStorage();
+      renderRecords();
+      updateProgress();
+      showToast('大釜已被淨空，魔藥消失無蹤。');
+    }
+
+    // 渲染紀錄清單
+    function renderRecords() {
+      if (records.length === 0) {
+        emptyState.classList.remove('hidden');
+        recordList.querySelectorAll('.record-item').forEach(el => el.remove());
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      // 先移除非 emptyState 的所有子元素
+      recordList.querySelectorAll('.record-item').forEach(el => el.remove());
+
+      records.forEach(rec => {
+        const item = document.createElement('div');
+        item.className = 'record-item flex justify-between items-center bg-slytherin-dark/40 border border-slytherin-silver/10 px-4 py-3 rounded-lg hover:border-slytherin-lightgreen/50 transition-all duration-200';
+        
+        item.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-slytherin-green/30 flex items-center justify-center text-slytherin-lightgreen">
+              <i class="fa-solid ${rec.icon} text-sm"></i>
+            </div>
+            <div>
+              <span class="text-sm font-semibold text-slytherin-silver block">${rec.drinkName}</span>
+              <span class="text-xs text-slytherin-silver/40">${rec.time} ‧ 注入 ${rec.volume}ml (比率 ${Math.round(rec.ratio * 100)}%)</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="text-right">
+              <span class="text-sm font-bold text-slytherin-lightgreen">+${rec.pureWater} ml</span>
+            </div>
+            <button onclick="deleteRecord(${rec.id})" class="text-slytherin-silver/40 hover:text-red-400 transition-colors duration-150 p-1">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
+        `;
+        recordList.appendChild(item);
+      });
+    }
+
+    // 更新累積水量與進度條
+    function updateProgress() {
+      const totalWater = records.reduce((sum, rec) => sum + rec.pureWater, 0);
+      totalWaterDisplay.textContent = totalWater;
+
+      const percentage = Math.min(Math.round((totalWater / DAILY_WATER_TARGET) * 100), 100);
+      progressBar.style.width = `${percentage}%`;
+      progressPercentage.textContent = `進度: ${percentage}%`;
+
+      // 滿水彩蛋
+      if (percentage >= 100) {
+        progressBar.classList.add('potion-glow');
+        progressBar.style.backgroundImage = 'linear-gradient(to right, #2a6644, #4ade80)';
+      } else {
+        progressBar.classList.remove('potion-glow');
+        progressBar.style.backgroundImage = 'none';
+      }
+    }
+
+    /* =========================================================
+     * 4. 本地儲存
+     * ========================================================= */
+    function saveToLocalStorage() {
+      localStorage.setItem('slytherin_water_records', JSON.stringify(records));
+    }
+
+    function loadLocalStorage() {
+      const saved = localStorage.getItem('slytherin_water_records');
+      if (saved) {
+        try {
+          records = JSON.parse(saved);
+          renderRecords();
+          updateProgress();
+        } catch (e) {
+          records = [];
+        }
+      }
+    }
+
+    /* =========================================================
+     * 5. 視覺特效與輔助功能
+     * ========================================================= */
+    
+    // 自定義彈出 Toast 提示
+    function showToast(message) {
+      toastMessage.textContent = message;
+      toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2500);
+    }
+
+    // 史萊哲林魔藥大釜：背景冒泡特效
+    function createMagicBubbles() {
+      const container = document.getElementById('bubbles-container');
+      const bubbleCount = 20;
+
+      for (let i = 0; i < bubbleCount; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        // 隨機大小、位置、延遲時間與速度
+        const size = Math.random() * 15 + 5; // 5px ~ 20px
+        const left = Math.random() * 100; // 0% ~ 100%
+        const delay = Math.random() * 5; // 0s ~ 5s
+        const duration = Math.random() * 4 + 3; // 3s ~ 7s
+
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${left}%`;
+        bubble.style.animationDelay = `${delay}s`;
+        bubble.style.animationDuration = `${duration}s`;
+
+        container.appendChild(bubble);
+      }
+    }
+  </script>
+</body>
+</html>
